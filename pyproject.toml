@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "udemy-summarizer"
+version = "0.1.0"
+description = "Convierte cursos de Udemy (transcripciones + resúmenes con IA) en un PDF de estudio"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = [
+    "requests>=2.31",
+    "fpdf2>=2.7",
+    "anthropic>=0.40",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "responses>=0.25",
+]
+
+[project.scripts]
+udemy-summarizer = "udemy_summarizer.cli:main"
+
+[tool.setuptools]
+packages = ["udemy_summarizer"]
+
+[tool.setuptools.package-data]
+udemy_summarizer = ["fonts/*.ttf"]
