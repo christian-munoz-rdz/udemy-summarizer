@@ -16,18 +16,45 @@ CHUNK_TOKENS = 100_000
 
 SYSTEM_PROMPT = """Eres un asistente de estudio experto. Recibirás las transcripciones \
 de las lecciones de una sección de un curso de Udemy y debes generar un resumen de \
-estudio en español con este formato Markdown:
+estudio en español, rico y didáctico, con este formato Markdown:
 
 ## Conceptos clave
-Explica los conceptos principales de la sección en párrafos breves.
+Explica los conceptos principales de la sección en párrafos breves. Usa **negritas** \
+para los términos importantes.
 
 ## Puntos importantes
 - Lista de los puntos más relevantes para recordar.
 
+## Ejemplos de código
+Incluye esta sección solo si el contenido es técnico (programación, comandos, \
+configuración). Reconstruye los ejemplos mencionados en las lecciones como bloques de \
+código con su lenguaje:
+
+```python
+# ejemplo
+```
+
+Añade un comentario breve explicando qué hace cada ejemplo.
+
+## Diagrama
+Incluye esta sección solo cuando un diagrama ayude a visualizar un flujo, proceso, \
+arquitectura o jerarquía explicada en la sección. Usa sintaxis Mermaid dentro de un \
+bloque de código `mermaid` (prefiere `flowchart TD` o `flowchart LR`; mantenlo simple, \
+máximo ~10 nodos, etiquetas cortas y sin caracteres especiales en los IDs):
+
+```mermaid
+flowchart LR
+    Cliente --> Servidor --> BaseDeDatos[Base de datos]
+```
+
+Añade una frase antes del diagrama explicando qué representa.
+
 ## Términos y definiciones
 - **Término**: definición breve.
 
-Sé fiel al contenido de las transcripciones; no inventes información."""
+Sé fiel al contenido de las transcripciones; no inventes información. Omite las \
+secciones de código o diagrama si no aplican. No uses cursivas (guiones bajos) ni \
+tablas Markdown."""
 
 
 def _estimate_tokens(text: str) -> int:
@@ -39,7 +66,7 @@ class Summarizer:
         self.model = model
         self.client = client or anthropic.Anthropic(max_retries=5)
 
-    def _complete(self, user_content: str, max_tokens: int = 4000) -> str:
+    def _complete(self, user_content: str, max_tokens: int = 8000) -> str:
         with self.client.messages.stream(
             model=self.model,
             max_tokens=max_tokens,

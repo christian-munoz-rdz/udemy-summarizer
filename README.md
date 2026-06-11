@@ -72,6 +72,13 @@ Los resúmenes usan la [API de Claude](https://platform.claude.com/) mediante la
 de entorno `ANTHROPIC_API_KEY`. Si no está definida, la herramienta continúa sin
 resúmenes (equivalente a `--no-ai`).
 
+Cada resumen incluye conceptos clave, puntos importantes y términos; en cursos
+técnicos también **snippets de código** (renderizados con fuente monoespaciada) y
+**diagramas Mermaid** cuando ayudan a visualizar un flujo o arquitectura. Los
+diagramas se renderizan a imagen mediante el servicio [mermaid.ink](https://mermaid.ink);
+si no hay conexión o el renderizado falla, el PDF incluye el código del diagrama
+como texto.
+
 Costo orientativo: un curso típico (~200K tokens de entrada, ~20K de salida con
 `claude-opus-4-8`) cuesta alrededor de **$1.50 USD**.
 

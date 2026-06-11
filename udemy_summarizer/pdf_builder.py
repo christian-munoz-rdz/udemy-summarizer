@@ -3,16 +3,20 @@
 from __future__ import annotations
 
 import datetime
+import io
 import re
+import sys
 from pathlib import Path
 
 from fpdf import FPDF
 
+from .mermaid import render_mermaid
 from .models import Course
 
 FONTS_DIR = Path(__file__).parent / "fonts"
 
-BOLD_RE = re.compile(r"\*\*(.+?)\*\*")
+INLINE_CODE_RE = re.compile(r"`([^`]+)`")
+FENCE_RE = re.compile(r"^```(\w*)\s*$")
 
 
 class StudyPDF(FPDF):
@@ -21,6 +25,8 @@ class StudyPDF(FPDF):
         self.course_title = course_title
         self.add_font("DejaVu", "", str(FONTS_DIR / "DejaVuSans.ttf"))
         self.add_font("DejaVu", "B", str(FONTS_DIR / "DejaVuSans-Bold.ttf"))
+        self.add_font("DejaVuMono", "", str(FONTS_DIR / "DejaVuSansMono.ttf"))
+        self.add_font("DejaVuMono", "B", str(FONTS_DIR / "DejaVuSansMono-Bold.ttf"))
         self.set_auto_page_break(auto=True, margin=18)
 
     def note(self, text: str) -> None:
@@ -119,14 +125,62 @@ def _render_toc(pdf: StudyPDF, outline: list) -> None:
                      new_x="LMARGIN", new_y="NEXT")
 
 
-def _render_summary(pdf: StudyPDF, summary: str) -> None:
-    """Renderiza el resumen IA (markdown ligero) en un bloque gris."""
-    pdf.set_fill_color(240, 240, 240)
-    pdf.set_font("DejaVu", "B", 11)
-    pdf.multi_cell(0, 7, "Resumen (IA)", fill=True, new_x="LMARGIN", new_y="NEXT")
-    pdf.ln(1)
-
+def _split_segments(summary: str) -> list[tuple[str, str]]:
+    """Divide el markdown en segmentos: ("text", ...), ("code"|"mermaid", ...)."""
+    segments: list[tuple[str, str]] = []
+    text_lines: list[str] = []
+    code_lines: list[str] = []
+    code_lang: str | None = None
     for raw in summary.splitlines():
+        fence = FENCE_RE.match(raw.strip())
+        if code_lang is None:
+            if fence:
+                if text_lines:
+                    segments.append(("text", "\n".join(text_lines)))
+                    text_lines = []
+                code_lang = fence.group(1).lower()
+            else:
+                text_lines.append(raw)
+        elif fence and not fence.group(1):
+            kind = "mermaid" if code_lang == "mermaid" else "code"
+            segments.append((kind, "\n".join(code_lines)))
+            code_lines, code_lang = [], None
+        else:
+            code_lines.append(raw)
+    if code_lines:  # bloque sin cerrar
+        segments.append(("mermaid" if code_lang == "mermaid" else "code", "\n".join(code_lines)))
+    if text_lines:
+        segments.append(("text", "\n".join(text_lines)))
+    return segments
+
+
+def _render_code_block(pdf: StudyPDF, code: str) -> None:
+    pdf.ln(1)
+    pdf.set_font("DejaVuMono", "", 8.5)
+    pdf.set_fill_color(245, 245, 245)
+    pdf.multi_cell(0, 4.8, code.rstrip() or " ", fill=True, wrapmode="CHAR",
+                   new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font("DejaVu", "", 10)
+    pdf.ln(2)
+
+
+def _render_diagram(pdf: StudyPDF, code: str) -> None:
+    """Renderiza un diagrama Mermaid como imagen; si falla, muestra el código."""
+    png = render_mermaid(code)
+    if not png:
+        print("  Aviso: no se pudo renderizar un diagrama Mermaid; se incluye el código.",
+              file=sys.stderr)
+        _render_code_block(pdf, code)
+        return
+    width = min(pdf.epw, 150)
+    x = pdf.l_margin + (pdf.epw - width) / 2
+    pdf.ln(2)
+    pdf.image(io.BytesIO(png), x=x, w=width)
+    pdf.ln(3)
+
+
+def _render_text_lines(pdf: StudyPDF, text: str) -> None:
+    for raw in text.splitlines():
         line = raw.strip()
         if not line:
             pdf.ln(2)
@@ -141,6 +195,24 @@ def _render_summary(pdf: StudyPDF, summary: str) -> None:
             bullet = "•  "
             line = line[2:]
         pdf.set_font("DejaVu", "", 10)
-        text = BOLD_RE.sub(lambda m: m.group(1), line)  # negritas: texto plano
-        pdf.multi_cell(0, 5.5, bullet + text, new_x="LMARGIN", new_y="NEXT")
+        line = INLINE_CODE_RE.sub(r"\1", line)
+        # markdown=True renderiza **negritas** con la variante B de la fuente
+        pdf.multi_cell(0, 5.5, bullet + line, markdown=True,
+                       new_x="LMARGIN", new_y="NEXT")
+
+
+def _render_summary(pdf: StudyPDF, summary: str) -> None:
+    """Renderiza el resumen IA: texto con negritas, código y diagramas Mermaid."""
+    pdf.set_fill_color(240, 240, 240)
+    pdf.set_font("DejaVu", "B", 11)
+    pdf.multi_cell(0, 7, "Resumen (IA)", fill=True, new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(1)
+
+    for kind, content in _split_segments(summary):
+        if kind == "text":
+            _render_text_lines(pdf, content)
+        elif kind == "mermaid":
+            _render_diagram(pdf, content)
+        else:
+            _render_code_block(pdf, content)
     pdf.ln(3)
