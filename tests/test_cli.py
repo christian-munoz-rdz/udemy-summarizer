@@ -1,7 +1,9 @@
+import json
+
 import pytest
 import responses
 
-from udemy_summarizer.cli import EXIT_OK, EXIT_TOKEN, main
+from udemy_summarizer.cli import EXIT_OK, EXIT_TOKEN, _resolve_locales, main
 from udemy_summarizer.udemy_client import BASE_URL
 
 
@@ -9,12 +11,26 @@ def test_requires_token(monkeypatch, capsys):
     monkeypatch.delenv("UDEMY_ACCESS_TOKEN", raising=False)
     with pytest.raises(SystemExit):
         main(["mi-curso"])
-    assert "access_token" in capsys.readouterr().err
+    assert "UDEMY_ACCESS_TOKEN" in capsys.readouterr().err
 
 
 def test_requires_course_or_list(monkeypatch):
     with pytest.raises(SystemExit):
         main(["--token", "t"])
+
+
+def test_english_flag_sets_locale():
+    parser = __import__("argparse").Namespace(
+        english=True, locale="es", fallback_locale="en"
+    )
+    assert _resolve_locales(parser) == ("en", "en")
+
+
+def test_locale_without_english_flag():
+    parser = __import__("argparse").Namespace(
+        english=False, locale="es", fallback_locale="en"
+    )
+    assert _resolve_locales(parser) == ("es", "en")
 
 
 @responses.activate
@@ -62,3 +78,38 @@ def test_dry_run_prints_tree(capsys):
     assert "Sección Uno" in out
     assert "subtítulos: es_ES" in out
     assert "sin subtítulos" in out
+
+
+@responses.activate
+def test_coursera_requires_token(monkeypatch, capsys):
+    monkeypatch.delenv("COURsera_CAUTH", raising=False)
+    with pytest.raises(SystemExit):
+        main(["--platform", "coursera", "machine-learning"])
+    assert "coursera" in capsys.readouterr().err.lower()
+
+
+@responses.activate
+def test_coursera_dry_run(capsys):
+    from pathlib import Path
+
+    fixtures = Path(__file__).parent / "fixtures"
+    course = json.loads((fixtures / "coursera_course.json").read_text(encoding="utf-8"))
+    materials = json.loads((fixtures / "coursera_materials.json").read_text(encoding="utf-8"))
+    video = json.loads((fixtures / "coursera_video.json").read_text(encoding="utf-8"))
+
+    from udemy_summarizer.coursera_client import COURSE_URL, MATERIALS_URL, VIDEO_URL
+
+    responses.add(responses.GET, COURSE_URL.format(slug="machine-learning"), json=course)
+    responses.add(responses.GET, MATERIALS_URL.format(slug="machine-learning"), json=materials)
+    responses.add(
+        responses.GET,
+        VIDEO_URL.format(course_id="course123", item_id="item1"),
+        json=video,
+    )
+    assert main(
+        ["--platform", "coursera", "--token", "t", "--dry-run", "machine-learning"]
+    ) == EXIT_OK
+    out = capsys.readouterr().out
+    assert "Semana 1" in out
+    assert "subtítulos: es" in out
+    assert "lectura" in out

@@ -15,7 +15,7 @@ MAX_INPUT_TOKENS = 150_000
 CHUNK_TOKENS = 100_000
 
 SYSTEM_PROMPT = """Eres un asistente de estudio experto. Recibirás las transcripciones \
-de las lecciones de una sección de un curso de Udemy y debes generar un resumen de \
+de las lecciones de una sección de un curso online y debes generar un resumen de \
 estudio en español, rico y didáctico, con este formato Markdown:
 
 ## Conceptos clave

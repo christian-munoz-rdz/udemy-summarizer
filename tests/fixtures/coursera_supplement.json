@@ -1,0 +1,12 @@
+{
+  "linked": {
+    "openCourseAssets.v1": [
+      {
+        "typeName": "html",
+        "definition": {
+          "value": "<p>Contenido de la lectura complementaria.</p>"
+        }
+      }
+    ]
+  }
+}

@@ -9,6 +9,7 @@ import requests
 
 TIMESTAMP_RE = re.compile(r"-->")
 CUE_TAG_RE = re.compile(r"</?[^>]+>")
+SRT_INDEX_RE = re.compile(r"^\d+$")
 
 
 def pick_caption(captions: list[dict], locale: str, fallback: str | None = None) -> dict | None:
@@ -35,10 +36,16 @@ def download_vtt(url: str, timeout: int = 30) -> str:
     return resp.text
 
 
-def vtt_to_text(vtt: str) -> str:
-    """Convierte un archivo WEBVTT en texto plano en párrafos."""
+def _timed_text_to_paragraphs(lines: list[str]) -> str:
+    paragraphs: list[str] = []
+    for i in range(0, len(lines), 6):
+        paragraphs.append(" ".join(lines[i : i + 6]))
+    return "\n\n".join(paragraphs)
+
+
+def _extract_timed_caption_lines(raw_text: str) -> list[str]:
     lines: list[str] = []
-    for raw in vtt.splitlines():
+    for raw in raw_text.splitlines():
         line = raw.strip()
         if not line:
             continue
@@ -46,20 +53,55 @@ def vtt_to_text(vtt: str) -> str:
             continue
         if TIMESTAMP_RE.search(line):
             continue
-        if line.isdigit():  # número de cue
+        if line.isdigit() or SRT_INDEX_RE.match(line):
             continue
         line = CUE_TAG_RE.sub("", line).strip()
         if not line:
             continue
-        if lines and lines[-1] == line:  # dedup de captions auto-generadas
+        if lines and lines[-1] == line:
             continue
         lines.append(line)
+    return lines
 
-    # Unir en párrafos de ~6 líneas para legibilidad
-    paragraphs: list[str] = []
-    for i in range(0, len(lines), 6):
-        paragraphs.append(" ".join(lines[i : i + 6]))
-    return "\n\n".join(paragraphs)
+
+def vtt_to_text(vtt: str) -> str:
+    """Convierte un archivo WEBVTT en texto plano en párrafos."""
+    return _timed_text_to_paragraphs(_extract_timed_caption_lines(vtt))
+
+
+def srt_to_text(srt: str) -> str:
+    """Convierte un archivo SRT en texto plano en párrafos."""
+    return _timed_text_to_paragraphs(_extract_timed_caption_lines(srt))
+
+
+def subtitle_to_text(content: str, fmt: str | None = None) -> str:
+    """Convierte subtítulos VTT, SRT o texto plano en párrafos legibles."""
+    stripped = content.strip()
+    if fmt == "txt" or (fmt is None and stripped and "-->" not in stripped and not stripped.startswith("WEBVTT")):
+        return stripped
+    if fmt == "srt" or (fmt is None and SRT_INDEX_RE.match(stripped.split("\n", 1)[0])):
+        return srt_to_text(content)
+    return vtt_to_text(content)
+
+
+def pick_subtitle_language(
+    subtitles: dict[str, str], locale: str, fallback: str | None = None
+) -> tuple[str, str] | None:
+    """Elige idioma de subtítulo Coursera: exacto → prefijo → fallback."""
+    if not subtitles:
+        return None
+    lang = locale.split("_")[0].lower()
+    normalized = {key.lower(): (key, url) for key, url in subtitles.items() if url}
+
+    if locale.lower() in normalized:
+        key, url = normalized[locale.lower()]
+        return key, url
+    for key, url in normalized.values():
+        if key.lower().startswith(lang):
+            return key, url
+    if fallback and fallback.lower() != locale.lower():
+        return pick_subtitle_language(subtitles, fallback, None)
+    return None
 
 
 class _TextExtractor(HTMLParser):

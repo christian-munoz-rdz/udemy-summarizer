@@ -1,0 +1,58 @@
+{
+  "elements": [
+    {
+      "id": "course123",
+      "moduleIds": ["mod1"]
+    }
+  ],
+  "linked": {
+    "onDemandCourseMaterialModules.v1": [
+      {
+        "id": "mod1",
+        "name": "Semana 1",
+        "slug": "week-1",
+        "lessonIds": ["les1"]
+      }
+    ],
+    "onDemandCourseMaterialLessons.v1": [
+      {
+        "id": "les1",
+        "name": "Introducción",
+        "slug": "intro",
+        "itemIds": ["item1", "item2", "item3"]
+      }
+    ],
+    "onDemandCourseMaterialItems.v2": [
+      {
+        "id": "item1",
+        "name": "Bienvenida",
+        "slug": "welcome",
+        "lessonId": "les1",
+        "moduleId": "mod1",
+        "contentSummary": {
+          "typeName": "lecture"
+        }
+      },
+      {
+        "id": "item2",
+        "name": "Lectura complementaria",
+        "slug": "reading",
+        "lessonId": "les1",
+        "moduleId": "mod1",
+        "contentSummary": {
+          "typeName": "supplement"
+        }
+      },
+      {
+        "id": "item3",
+        "name": "Quiz de repaso",
+        "slug": "quiz",
+        "lessonId": "les1",
+        "moduleId": "mod1",
+        "contentSummary": {
+          "typeName": "quiz"
+        }
+      }
+    ]
+  }
+}

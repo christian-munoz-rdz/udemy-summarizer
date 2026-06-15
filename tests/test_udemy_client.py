@@ -77,3 +77,38 @@ def test_get_curriculum_builds_sections(client):
     assert variables.lectures[1].type == "article"
     assert variables.lectures[1].body_html == "<p>Hola</p>"
     assert course.total_lectures == 3
+
+
+@responses.activate
+def test_fetch_transcript_video(client):
+    from udemy_summarizer.models import Lecture
+
+    course = Course(id=42, title="Python Total", url="")
+    lecture = Lecture(
+        id=10,
+        title="Bienvenida",
+        object_index=1,
+        type="video",
+        captions=[{"locale_id": "es_ES", "url": "http://example.com/es.vtt"}],
+    )
+    vtt = "WEBVTT\n\n00:00:01.000 --> 00:00:04.000\nHola desde Udemy."
+    responses.add(responses.GET, "http://example.com/es.vtt", body=vtt)
+    assert client.fetch_transcript(course, lecture, "es", "en") is True
+    assert "Hola desde Udemy." in lecture.transcript
+    assert lecture.transcript_locale == "es_ES"
+
+
+@responses.activate
+def test_fetch_transcript_article(client):
+    from udemy_summarizer.models import Lecture
+
+    course = Course(id=42, title="Python Total", url="")
+    lecture = Lecture(
+        id=12,
+        title="Recursos",
+        object_index=3,
+        type="article",
+        body_html="<p>Material de apoyo</p>",
+    )
+    assert client.fetch_transcript(course, lecture, "es", "en") is True
+    assert lecture.transcript == "Material de apoyo"

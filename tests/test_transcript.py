@@ -1,6 +1,13 @@
 from pathlib import Path
 
-from udemy_summarizer.transcript import html_to_text, pick_caption, vtt_to_text
+from udemy_summarizer.transcript import (
+    html_to_text,
+    pick_caption,
+    pick_subtitle_language,
+    srt_to_text,
+    subtitle_to_text,
+    vtt_to_text,
+)
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -50,3 +57,29 @@ def test_html_to_text():
     assert "Descarga el material aquí." in text
     assert "- Enlace uno" in text
     assert "alert" not in text
+
+
+def test_srt_to_text():
+    srt = (
+        "1\n"
+        "00:00:01,000 --> 00:00:04,000\n"
+        "Primera línea.\n\n"
+        "2\n"
+        "00:00:05,000 --> 00:00:08,000\n"
+        "Segunda línea."
+    )
+    text = srt_to_text(srt)
+    assert "Primera línea." in text
+    assert "Segunda línea." in text
+    assert "-->" not in text
+
+
+def test_subtitle_to_text_plain():
+    assert subtitle_to_text("Texto plano del transcript.", "txt") == "Texto plano del transcript."
+
+
+def test_pick_subtitle_language():
+    subtitles = {"en": "http://x/en.vtt", "es": "http://x/es.vtt"}
+    assert pick_subtitle_language(subtitles, "es") == ("es", "http://x/es.vtt")
+    assert pick_subtitle_language(subtitles, "es", "en") == ("es", "http://x/es.vtt")
+    assert pick_subtitle_language(subtitles, "fr", "en") == ("en", "http://x/en.vtt")

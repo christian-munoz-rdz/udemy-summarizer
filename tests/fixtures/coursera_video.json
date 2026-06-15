@@ -1,0 +1,18 @@
+{
+  "linked": {
+    "onDemandVideos.v1": [
+      {
+        "subtitlesVtt": {
+          "en": "https://www.coursera.org/subtitles/en.vtt",
+          "es": "https://www.coursera.org/subtitles/es.vtt"
+        },
+        "subtitlesTxt": {
+          "en": "https://www.coursera.org/subtitles/en.txt"
+        },
+        "subtitles": {
+          "en": "https://www.coursera.org/subtitles/en.srt"
+        }
+      }
+    ]
+  }
+}

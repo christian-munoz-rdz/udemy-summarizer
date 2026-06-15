@@ -7,7 +7,9 @@ import time
 
 import requests
 
+from .client import PlatformError, TokenExpiradoError
 from .models import Course, Lecture, Section
+from .transcript import download_vtt, html_to_text, pick_caption, vtt_to_text
 
 BASE_URL = "https://www.udemy.com/api-2.0"
 USER_AGENT = (
@@ -25,17 +27,20 @@ CURRICULUM_FIELDS = (
 COURSE_URL_RE = re.compile(r"udemy\.com/course/([^/?#]+)")
 
 
-class UdemyError(Exception):
+class UdemyError(PlatformError):
     """Error genérico de la API de Udemy."""
 
 
-class TokenExpiradoError(UdemyError):
+class UdemyTokenExpiradoError(TokenExpiradoError):
     def __init__(self) -> None:
         super().__init__(
             "El access_token expiró o no es válido. Abre udemy.com en tu navegador, "
             "copia el valor de la cookie 'access_token' y vuelve a intentarlo "
             "(--token o variable de entorno UDEMY_ACCESS_TOKEN)."
         )
+
+
+TokenExpiradoError = UdemyTokenExpiradoError
 
 
 class UdemyClient:
@@ -60,7 +65,7 @@ class UdemyClient:
                 time.sleep(2**attempt)
                 continue
             if resp.status_code in (401, 403):
-                raise TokenExpiradoError()
+                raise UdemyTokenExpiradoError()
             if resp.status_code == 429 or resp.status_code >= 500:
                 last_exc = UdemyError(f"HTTP {resp.status_code} en {url}")
                 time.sleep(2**attempt)
@@ -132,3 +137,28 @@ class UdemyClient:
             captions=asset.get("captions") or [],
             body_html=asset.get("body"),
         )
+
+    def fetch_transcript(
+        self, course: Course, lecture: Lecture, locale: str, fallback: str
+    ) -> bool:
+        del course
+        if lecture.type == "article" and lecture.body_html:
+            lecture.transcript = html_to_text(lecture.body_html)
+            return True
+        cap = pick_caption(lecture.captions, locale, fallback)
+        if not cap:
+            return False
+        lecture.transcript = vtt_to_text(download_vtt(cap["url"]))
+        lecture.transcript_locale = cap.get("locale_id")
+        return True
+
+    def describe_lecture(
+        self, course: Course, lecture: Lecture, locale: str, fallback: str
+    ) -> str:
+        del course
+        if lecture.type == "article":
+            return "artículo"
+        if lecture.type != "video":
+            return lecture.type
+        cap = pick_caption(lecture.captions, locale, fallback)
+        return f"subtítulos: {cap['locale_id']}" if cap else "sin subtítulos"
