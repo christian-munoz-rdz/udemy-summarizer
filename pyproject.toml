@@ -14,6 +14,7 @@ dependencies = [
     "fpdf2>=2.7",
     "anthropic>=0.40",
     "python-dotenv>=1.0",
+    "PyQt6>=6.6",
 ]
 
 [dependency-groups]
@@ -24,9 +25,10 @@ dev = [
 
 [project.scripts]
 udemy-summarizer = "udemy_summarizer.cli:main"
+udemy-summarizer-gui = "udemy_summarizer.gui:main"
 
 [tool.setuptools]
-packages = ["udemy_summarizer"]
+packages = ["udemy_summarizer", "udemy_summarizer.gui"]
 
 [tool.setuptools.package-data]
 udemy_summarizer = ["fonts/*.ttf"]

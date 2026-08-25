@@ -40,6 +40,12 @@ uv run udemy-summarizer --version
 
 No hace falta activar el entorno: `uv run` usa `.venv` por ti.
 
+Para la interfaz gráfica:
+
+```bash
+uv run udemy-summarizer-gui
+```
+
 ## Autenticación
 
 Las credenciales se leen del archivo `.env` en el directorio desde el que ejecutas el comando. Copia la plantilla (paso de instalación) y rellena los valores.
@@ -76,7 +82,23 @@ La cookie caduca con tu sesión; renueva el valor si recibes un error de autenti
 
 Ejecuta siempre desde la carpeta del proyecto (donde está `.env`).
 
-### Udemy (por defecto)
+### Interfaz gráfica (PyQt6)
+
+La GUI expone las mismas opciones que la CLI:
+
+- Plataforma (Udemy / Coursera) y token opcional
+- Curso (URL, slug o ID) con listado de cursos inscritos
+- Idioma de subtítulos, inglés, dry-run, verbose y límite de lecciones
+- Resúmenes IA (modelo y `--no-ai`)
+- **Carpeta de destino** del PDF y nombre de archivo opcional
+
+```bash
+uv run udemy-summarizer-gui
+```
+
+Usa **Examinar…** para elegir la carpeta donde se guardará el PDF. Si dejas el nombre vacío, se genera automáticamente a partir del título del curso.
+
+### CLI — Udemy (por defecto)
 
 ```bash
 # Listar tus cursos inscritos
@@ -101,7 +123,7 @@ uv run udemy-summarizer mi-curso --no-ai --english
 
 El curso se puede indicar por URL completa, slug (`mi-curso`) o ID numérico.
 
-### Coursera
+### CLI — Coursera
 
 ```bash
 # Listar cursos inscritos
@@ -119,7 +141,7 @@ uv run udemy-summarizer --platform coursera machine-learning --no-ai --english
 
 Indica el curso por URL (`https://www.coursera.org/learn/machine-learning`) o slug (`machine-learning`).
 
-### Opciones
+### Opciones CLI
 
 | Opción | Descripción |
 |---|---|
