@@ -31,9 +31,9 @@ class CourseClient(Protocol):
 
 
 def default_token(platform: str) -> str | None:
-    if platform == "coursera":
-        return os.environ.get("COURsera_CAUTH")
-    return os.environ.get("UDEMY_ACCESS_TOKEN")
+    key = "COURSERA_CAUTH" if platform == "coursera" else "UDEMY_ACCESS_TOKEN"
+    token = (os.environ.get(key) or "").strip()
+    return token or None
 
 
 def create_client(platform: str, token: str) -> CourseClient:

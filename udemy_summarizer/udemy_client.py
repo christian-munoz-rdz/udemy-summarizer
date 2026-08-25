@@ -35,8 +35,8 @@ class UdemyTokenExpiradoError(TokenExpiradoError):
     def __init__(self) -> None:
         super().__init__(
             "El access_token expiró o no es válido. Abre udemy.com en tu navegador, "
-            "copia el valor de la cookie 'access_token' y vuelve a intentarlo "
-            "(--token o variable de entorno UDEMY_ACCESS_TOKEN)."
+            "copia el valor de la cookie 'access_token' y actualízalo en .env "
+            "(UDEMY_ACCESS_TOKEN) o usa --token."
         )
 
 

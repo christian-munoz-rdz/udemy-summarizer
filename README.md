@@ -8,46 +8,53 @@ Convierte un curso de **Udemy** o **Coursera** (en el que estás inscrito) en un
 
 > Solo para uso personal con cursos en los que estés inscrito.
 
+Requiere [uv](https://docs.astral.sh/uv/) y Python 3.10+.
+
 ## Instalación
 
-Recomendado: usar un entorno virtual para aislar las dependencias.
+Si aún no tienes uv:
+
+```bash
+# macOS / Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Windows (PowerShell)
+irm https://astral.sh/uv/install.ps1 | iex
+```
+
+En la carpeta del proyecto:
 
 ```bash
 cd udemy-summarizer
-python3 -m venv .venv
-source .venv/bin/activate   # en Windows: .venv\Scripts\activate
-pip install .
+uv sync
+cp .env.example .env   # Windows: copy .env.example .env
 ```
 
-Comprueba que el comando quedó disponible:
+`uv sync` crea `.venv`, instala el paquete y las dependencias de desarrollo (el archivo `uv.lock` fija las versiones).
+
+Comprueba que el comando funciona:
 
 ```bash
-which udemy-summarizer   # debe apuntar a .venv/bin/udemy-summarizer
-udemy-summarizer --version
+uv run udemy-summarizer --version
 ```
 
-Requiere Python 3.10+.
-
-Para desarrollo (tests):
-
-```bash
-pip install ".[dev]"
-pytest
-```
-
-> Si `pip install -e .` falla con un error sobre `build_editable`, usa `pip install .` (sin `-e`).
+No hace falta activar el entorno: `uv run` usa `.venv` por ti.
 
 ## Autenticación
+
+Las credenciales se leen del archivo `.env` en el directorio desde el que ejecutas el comando. Copia la plantilla (paso de instalación) y rellena los valores.
+
+`--token` en la CLI pisa el valor de `.env`. Las variables ya definidas en el entorno del sistema también tienen prioridad sobre el archivo.
 
 ### Udemy: `access_token`
 
 1. Abre [udemy.com](https://www.udemy.com) en tu navegador e inicia sesión.
 2. Abre las herramientas de desarrollador (`F12`) → pestaña **Application** (Chrome) o **Storage** (Firefox).
 3. En **Cookies → https://www.udemy.com**, busca la cookie `access_token` y copia su valor.
-4. Pásalo con `--token` o expórtalo:
+4. Pégalo en `.env`:
 
 ```bash
-export UDEMY_ACCESS_TOKEN="tu-token-aquí"
+UDEMY_ACCESS_TOKEN="tu-token-aquí"
 ```
 
 El token caduca con tu sesión; si recibes un error de autenticación, copia uno nuevo.
@@ -57,37 +64,39 @@ El token caduca con tu sesión; si recibes un error de autenticación, copia uno
 1. Abre [coursera.org](https://www.coursera.org) e inicia sesión.
 2. Abre las herramientas de desarrollador (`F12`) → **Application** → **Cookies → https://www.coursera.org**.
 3. Busca la cookie **`CAUTH`** y copia su valor.
-4. Pásalo con `--token` o expórtalo:
+4. Pégalo en `.env`:
 
 ```bash
-export COURsera_CAUTH="tu-cauth-aquí"
+COURSERA_CAUTH="tu-cauth-aquí"
 ```
 
 La cookie caduca con tu sesión; renueva el valor si recibes un error de autenticación.
 
 ## Uso
 
+Ejecuta siempre desde la carpeta del proyecto (donde está `.env`).
+
 ### Udemy (por defecto)
 
 ```bash
 # Listar tus cursos inscritos
-udemy-summarizer --list-courses
+uv run udemy-summarizer --list-courses
 
 # Ver la estructura de un curso y la disponibilidad de subtítulos (no descarga nada)
-udemy-summarizer https://www.udemy.com/course/mi-curso/ --dry-run
+uv run udemy-summarizer https://www.udemy.com/course/mi-curso/ --dry-run
 
 # Generar el PDF completo (transcripciones + resúmenes IA)
-export ANTHROPIC_API_KEY="sk-ant-..."
-udemy-summarizer mi-curso
+# Requiere ANTHROPIC_API_KEY en .env
+uv run udemy-summarizer mi-curso
 
 # Sin resúmenes IA (no requiere ANTHROPIC_API_KEY)
-udemy-summarizer mi-curso --no-ai
+uv run udemy-summarizer mi-curso --no-ai
 
 # Prueba rápida con solo 3 lecciones
-udemy-summarizer mi-curso --no-ai --max-lectures 3
+uv run udemy-summarizer mi-curso --no-ai --max-lectures 3
 
 # Transcripciones en inglés
-udemy-summarizer mi-curso --no-ai --english
+uv run udemy-summarizer mi-curso --no-ai --english
 ```
 
 El curso se puede indicar por URL completa, slug (`mi-curso`) o ID numérico.
@@ -96,16 +105,16 @@ El curso se puede indicar por URL completa, slug (`mi-curso`) o ID numérico.
 
 ```bash
 # Listar cursos inscritos
-udemy-summarizer --platform coursera --list-courses
+uv run udemy-summarizer --platform coursera --list-courses
 
 # Ver estructura y subtítulos disponibles
-udemy-summarizer --platform coursera machine-learning --dry-run
+uv run udemy-summarizer --platform coursera machine-learning --dry-run
 
 # Generar PDF
-udemy-summarizer --platform coursera machine-learning --no-ai
+uv run udemy-summarizer --platform coursera machine-learning --no-ai
 
 # Transcripciones en inglés
-udemy-summarizer --platform coursera machine-learning --no-ai --english
+uv run udemy-summarizer --platform coursera machine-learning --no-ai --english
 ```
 
 Indica el curso por URL (`https://www.coursera.org/learn/machine-learning`) o slug (`machine-learning`).
@@ -115,7 +124,7 @@ Indica el curso por URL (`https://www.coursera.org/learn/machine-learning`) o sl
 | Opción | Descripción |
 |---|---|
 | `--platform {udemy,coursera}` | Plataforma del curso (default: `udemy`) |
-| `--token TOKEN` | Credencial de la plataforma (`UDEMY_ACCESS_TOKEN` o `COURsera_CAUTH`) |
+| `--token TOKEN` | Credencial de la plataforma; pisa `UDEMY_ACCESS_TOKEN` o `COURSERA_CAUTH` de `.env` |
 | `--list-courses` | Lista tus cursos inscritos y sale |
 | `--locale es` | Idioma preferido de los subtítulos (default: `es`; usa `en` para inglés) |
 | `--english` | Atajo para transcripciones en inglés (`--locale en --fallback-locale en`) |
@@ -135,9 +144,8 @@ Indica el curso por URL (`https://www.coursera.org/learn/machine-learning`) o sl
 
 ## Resúmenes con IA
 
-Los resúmenes usan la [API de Claude](https://platform.claude.com/) mediante la variable
-de entorno `ANTHROPIC_API_KEY`. Si no está definida, la herramienta continúa sin
-resúmenes (equivalente a `--no-ai`).
+Los resúmenes usan la [API de Claude](https://platform.claude.com/) mediante `ANTHROPIC_API_KEY`
+en `.env`. Si no está definida, la herramienta continúa sin resúmenes (equivalente a `--no-ai`).
 
 Cada resumen incluye conceptos clave, puntos importantes y términos; en cursos
 técnicos también **snippets de código** (renderizados con fuente monoespaciada) y
@@ -151,69 +159,46 @@ Costo orientativo: un curso típico (~200K tokens de entrada, ~20K de salida con
 
 ## Troubleshooting
 
-### `zsh: command not found: udemy-summarizer`
+### `uv: command not found`
 
-El comando no existe hasta que instalas el paquete **y** activas el entorno virtual donde lo instalaste.
+uv no está en el `PATH`. Instálalo (sección [Instalación](#instalación)) y abre una terminal nueva.
 
-```bash
-cd udemy-summarizer
-source .venv/bin/activate
-pip install .
-udemy-summarizer --version
-```
+### `Failed to spawn: 'udemy-summarizer'` / comando no encontrado
 
-Si no has creado el venv aún:
+El paquete no está instalado en `.venv`. Desde la carpeta del proyecto:
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install .
+uv sync
+uv run udemy-summarizer --version
 ```
 
-Cada terminal nueva requiere `source .venv/bin/activate` antes de usar el comando.
+Usa `uv run udemy-summarizer ...`; no hace falta (ni se recomienda) invocar el comando a pelo.
 
-### `pip install -e .` falla (error `build_editable`)
+### Actualicé dependencias o `pyproject.toml`
 
-Algunas versiones de setuptools no soportan instalación editable en este proyecto. Instala en modo normal:
+Vuelve a sincronizar el entorno:
 
 ```bash
-pip install .
+uv sync
 ```
 
-Funciona igual; solo que si editas el código tendrás que reinstalar con `pip install .` para ver los cambios.
+Los cambios en el código fuente se recogen al instante (instalación editable).
 
-### Actualicé el código pero no veo los cambios
+### No encuentra las credenciales
 
-Reinstala dentro del venv activo:
-
-```bash
-source .venv/bin/activate
-pip install .
-```
-
-### Las variables de entorno no se reconocen
-
-`export UDEMY_ACCESS_TOKEN=...` y `export COURsera_CAUTH=...` solo viven en la terminal actual. Si abres otra pestaña o reinicias el shell, expórtalas de nuevo (con el venv activado):
-
-```bash
-source .venv/bin/activate
-export COURsera_CAUTH="..."
-udemy-summarizer --platform coursera --list-courses
-```
+El CLI carga `.env` del directorio de trabajo actual. Ejecuta el comando desde la carpeta del proyecto (donde copiaste `.env.example` a `.env`) y comprueba que las variables no estén vacías.
 
 También puedes pasar la credencial directamente: `--token "..."`.
 
 ### Error de autenticación (401 / 403)
 
-La cookie `access_token` (Udemy) o `CAUTH` (Coursera) caducó. Copia un valor nuevo desde las DevTools del navegador y vuelve a exportarlo o usa `--token`.
+La cookie `access_token` (Udemy) o `CAUTH` (Coursera) caducó. Copia un valor nuevo desde las DevTools del navegador y actualízalo en `.env`.
 
 ## Desarrollo
 
 ```bash
-source .venv/bin/activate
-pip install ".[dev]"
-pytest
+uv sync
+uv run pytest
 ```
 
-Los tests no requieren credenciales: las APIs de Udemy y Coursera se simulan con `responses`
-y el cliente de Anthropic con mocks.
+`uv sync` incluye el grupo `dev` (`pytest`, `responses`). Los tests no requieren credenciales: las APIs de Udemy y Coursera se simulan con `responses` y el cliente de Anthropic con mocks.

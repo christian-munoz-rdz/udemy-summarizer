@@ -7,16 +7,34 @@ from udemy_summarizer.cli import EXIT_OK, EXIT_TOKEN, _resolve_locales, main
 from udemy_summarizer.udemy_client import BASE_URL
 
 
-def test_requires_token(monkeypatch, capsys):
+def test_requires_token(monkeypatch, capsys, tmp_path):
+    monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("UDEMY_ACCESS_TOKEN", raising=False)
     with pytest.raises(SystemExit):
         main(["mi-curso"])
-    assert "UDEMY_ACCESS_TOKEN" in capsys.readouterr().err
+    err = capsys.readouterr().err
+    assert "UDEMY_ACCESS_TOKEN" in err
+    assert ".env" in err
 
 
 def test_requires_course_or_list(monkeypatch):
     with pytest.raises(SystemExit):
         main(["--token", "t"])
+
+
+def test_reads_token_from_env_file(monkeypatch, capsys, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("UDEMY_ACCESS_TOKEN", raising=False)
+    (tmp_path / ".env").write_text("UDEMY_ACCESS_TOKEN=from-file\n", encoding="utf-8")
+
+    with responses.RequestsMock() as rsps:
+        rsps.add(
+            responses.GET,
+            f"{BASE_URL}/users/me/subscribed-courses/",
+            json={"results": [{"id": 7, "title": "Mi Curso", "url": "/course/mi-curso/"}], "next": None},
+        )
+        assert main(["--list-courses"]) == EXIT_OK
+    assert "[7] Mi Curso" in capsys.readouterr().out
 
 
 def test_english_flag_sets_locale():
@@ -81,11 +99,14 @@ def test_dry_run_prints_tree(capsys):
 
 
 @responses.activate
-def test_coursera_requires_token(monkeypatch, capsys):
-    monkeypatch.delenv("COURsera_CAUTH", raising=False)
+def test_coursera_requires_token(monkeypatch, capsys, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("COURSERA_CAUTH", raising=False)
     with pytest.raises(SystemExit):
         main(["--platform", "coursera", "machine-learning"])
-    assert "coursera" in capsys.readouterr().err.lower()
+    err = capsys.readouterr().err
+    assert "coursera" in err.lower()
+    assert ".env" in err
 
 
 @responses.activate

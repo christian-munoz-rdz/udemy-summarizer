@@ -1,7 +1,7 @@
 from unittest.mock import MagicMock
 
 import anthropic
-import httpx
+import httpx2
 
 from udemy_summarizer.models import Lecture, Section
 from udemy_summarizer.summarizer import Summarizer
@@ -47,8 +47,8 @@ def test_summarize_section_without_transcripts_returns_none():
 
 def test_summarize_section_degrades_on_api_error():
     client = MagicMock()
-    request = httpx.Request("POST", "https://api.anthropic.com/v1/messages")
-    response = httpx.Response(429, request=request)
+    request = httpx2.Request("POST", "https://api.anthropic.com/v1/messages")
+    response = httpx2.Response(429, request=request)
     client.messages.stream.side_effect = anthropic.RateLimitError(
         "rate limited", response=response, body=None
     )

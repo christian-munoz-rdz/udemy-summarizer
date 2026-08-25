@@ -88,8 +88,8 @@ class CourseraTokenExpiradoError(TokenExpiradoError):
     def __init__(self) -> None:
         super().__init__(
             "La cookie CAUTH expiró o no es válida. Abre coursera.org en tu navegador, "
-            "copia el valor de la cookie 'CAUTH' y vuelve a intentarlo "
-            "(--token o variable de entorno COURsera_CAUTH)."
+            "copia el valor de la cookie 'CAUTH' y actualízala en .env "
+            "(COURSERA_CAUTH) o usa --token."
         )
 
 

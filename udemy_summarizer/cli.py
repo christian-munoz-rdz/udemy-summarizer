@@ -6,8 +6,10 @@ import argparse
 import os
 import re
 import sys
+from pathlib import Path
 
 import requests
+from dotenv import load_dotenv
 
 from . import __version__
 from .client import PlatformError, TokenExpiradoError, create_client, default_token
@@ -20,7 +22,7 @@ EXIT_NETWORK = 3
 
 PLATFORM_ENV = {
     "udemy": "UDEMY_ACCESS_TOKEN",
-    "coursera": "COURsera_CAUTH",
+    "coursera": "COURSERA_CAUTH",
 }
 
 
@@ -45,7 +47,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--token",
-        help="Credencial de la plataforma (ver --platform)",
+        help="Credencial de la plataforma (override de .env)",
     )
     parser.add_argument(
         "--list-courses", action="store_true", help="Listar cursos inscritos y salir"
@@ -83,7 +85,13 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def load_env(env_file: Path | None = None) -> None:
+    """Carga variables desde .env del directorio de trabajo (no pisa el entorno)."""
+    load_dotenv(env_file or Path.cwd() / ".env")
+
+
 def main(argv: list[str] | None = None) -> int:
+    load_env()
     parser = build_parser()
     args = parser.parse_args(argv)
     token = args.token or default_token(args.platform)
@@ -91,7 +99,8 @@ def main(argv: list[str] | None = None) -> int:
     if not token:
         parser.error(
             f"Falta la credencial de {args.platform}. "
-            f"Usa --token o define {PLATFORM_ENV[args.platform]}."
+            f"Define {PLATFORM_ENV[args.platform]} en el archivo .env "
+            f"(copia .env.example) o usa --token."
         )
     if not args.list_courses and not args.curso:
         parser.error("Indica el curso (URL, slug o ID) o usa --list-courses.")
@@ -212,7 +221,7 @@ def _download_transcripts(client, course: Course, locale: str, fallback: str, ve
 
 def _summarize(course: Course, model: str) -> None:
     if not os.environ.get("ANTHROPIC_API_KEY"):
-        print("ANTHROPIC_API_KEY no definida; se omiten los resúmenes IA.")
+        print("ANTHROPIC_API_KEY no definida en .env; se omiten los resúmenes IA.")
         return
     from .summarizer import Summarizer
 
