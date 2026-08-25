@@ -77,6 +77,18 @@ def test_build_pdf_creates_valid_file(tmp_path):
     assert len(data) > 5000
 
 
+def test_build_pdf_handles_italic_markdown(tmp_path):
+    summary = "## Conceptos clave\nExpress usa *middleware* y **routing**."
+    course = Course(id=1, title="Curso", url="", sections=[
+        Section(index=1, title="S1", summary=summary,
+                lectures=[Lecture(id=1, title="L1", object_index=1, type="video",
+                                  transcript="Texto.")]),
+    ])
+    output = tmp_path / "curso.pdf"
+    build_pdf(course, str(output))
+    assert output.read_bytes()[:5] == b"%PDF-"
+
+
 def test_build_pdf_falls_back_to_code_when_mermaid_fails(tmp_path):
     course = Course(id=1, title="Curso", url="", sections=[
         Section(index=1, title="S1", summary=SUMMARY_RICH,

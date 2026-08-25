@@ -25,12 +25,15 @@ class StudyPDF(FPDF):
         self.course_title = course_title
         self.add_font("DejaVu", "", str(FONTS_DIR / "DejaVuSans.ttf"))
         self.add_font("DejaVu", "B", str(FONTS_DIR / "DejaVuSans-Bold.ttf"))
+        # fpdf2 pide variantes I/BI para markdown con *cursiva*; reutilizamos las TTF existentes
+        self.add_font("DejaVu", "I", str(FONTS_DIR / "DejaVuSans.ttf"))
+        self.add_font("DejaVu", "BI", str(FONTS_DIR / "DejaVuSans-Bold.ttf"))
         self.add_font("DejaVuMono", "", str(FONTS_DIR / "DejaVuSansMono.ttf"))
         self.add_font("DejaVuMono", "B", str(FONTS_DIR / "DejaVuSansMono-Bold.ttf"))
         self.set_auto_page_break(auto=True, margin=18)
 
     def note(self, text: str) -> None:
-        """Aviso secundario en gris (sin variante cursiva de la fuente)."""
+        """Aviso secundario en gris."""
         self.set_font("DejaVu", "", 10)
         self.set_text_color(130)
         self.multi_cell(0, 6, text, new_x="LMARGIN", new_y="NEXT")
